@@ -70,6 +70,7 @@ class Comment(RESTFrameworkModel):
 
 class ActionItem(RESTFrameworkModel):
     title = models.CharField(max_length=200)
+    started = models.NullBooleanField(default=False)
     done = models.BooleanField(default=False)
     info = CustomField(default='---', max_length=12)
 
@@ -102,6 +103,7 @@ class BlogPostComment(RESTFrameworkModel):
 
 class Album(RESTFrameworkModel):
     title = models.CharField(max_length=100, unique=True)
+    ref = models.CharField(max_length=10, unique=True, null=True, blank=True)
 
 
 class Photo(RESTFrameworkModel):
@@ -111,7 +113,8 @@ class Photo(RESTFrameworkModel):
 
 # Model for issue #324
 class BlankFieldModel(RESTFrameworkModel):
-    title = models.CharField(max_length=100, blank=True, null=False)
+    title = models.CharField(max_length=100, blank=True, null=False,
+                             default="title")
 
 
 # Model for issue #380
@@ -142,14 +145,16 @@ class ForeignKeyTarget(RESTFrameworkModel):
 
 class ForeignKeySource(RESTFrameworkModel):
     name = models.CharField(max_length=100)
-    target = models.ForeignKey(ForeignKeyTarget, related_name='sources')
+    target = models.ForeignKey(ForeignKeyTarget, related_name='sources',
+                               help_text='Target', verbose_name='Target')
 
 
 # Nullable ForeignKey
 class NullableForeignKeySource(RESTFrameworkModel):
     name = models.CharField(max_length=100)
     target = models.ForeignKey(ForeignKeyTarget, null=True, blank=True,
-                               related_name='nullable_sources')
+                               related_name='nullable_sources',
+                               verbose_name='Optional target object')
 
 
 # OneToOne
@@ -167,3 +172,10 @@ class NullableOneToOneSource(RESTFrameworkModel):
 class BasicModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = BasicModel
+
+
+# Models to test filters
+class FilterableItem(models.Model):
+    text = models.CharField(max_length=100)
+    decimal = models.DecimalField(max_digits=4, decimal_places=2)
+    date = models.DateField()

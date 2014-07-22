@@ -70,7 +70,7 @@ The following attributes control the basic view behavior.
 
 **Shortcuts**:
 
-* `model` - This shortcut may be used instead of setting either (or both) of the `queryset`/`serializer_class` attributes, although using the explicit style is generally preferred.  If used instead of `serializer_class`, then then `DEFAULT_MODEL_SERIALIZER_CLASS` setting will determine the base serializer class.  Note that `model` is only ever used for generating a default queryset or serializer class - the `queryset` and `serializer_class` attributes are always preferred if provided.
+* `model` - This shortcut may be used instead of setting either (or both) of the `queryset`/`serializer_class` attributes, although using the explicit style is generally preferred.  If used instead of `serializer_class`, then `DEFAULT_MODEL_SERIALIZER_CLASS` setting will determine the base serializer class.  Note that `model` is only ever used for generating a default queryset or serializer class - the `queryset` and `serializer_class` attributes are always preferred if provided.
 
 **Pagination**:
 
@@ -119,7 +119,7 @@ For example:
         self.check_object_permissions(self.request, obj)
         return obj
 
-Note that if your API doesn't include any object level permissions, you may optionally exclude the ``self.check_object_permissions, and simply return the object from the `get_object_or_404` lookup.
+Note that if your API doesn't include any object level permissions, you may optionally exclude the `self.check_object_permissions`, and simply return the object from the `get_object_or_404` lookup.
 
 #### `get_filter_backends(self)`
 
@@ -163,12 +163,14 @@ For example:
             return 20
         return 100
 
-**Save hooks**:
+**Save / deletion hooks**:
 
 The following methods are provided as placeholder interfaces.  They contain empty implementations and are not called directly by `GenericAPIView`, but they are overridden and used by some of the mixin classes.
 
 * `pre_save(self, obj)` - A hook that is called before saving an object.
 * `post_save(self, obj, created=False)` - A hook that is called after saving an object.
+* `pre_delete(self, obj)` - A hook that is called before deleting an object.
+* `post_delete(self, obj)` - A hook that is called after deleting an object.
 
 The `pre_save` method in particular is a useful hook for setting attributes that are implicit in the request, but are not part of the request data.  For instance, you might set an attribute on the object based on the request user, or based on a URL keyword argument.
 
@@ -185,7 +187,7 @@ Remember that the `pre_save()` method is not called by `GenericAPIView` itself, 
 You won't typically need to override the following methods, although you might need to call into them if you're writing custom views using `GenericAPIView`.
 
 * `get_serializer_context(self)` - Returns a dictionary containing any extra context that should be supplied to the serializer.  Defaults to including `'request'`, `'view'` and `'format'` keys.
-* `get_serializer(self, instance=None, data=None, files=None, many=False, partial=False)` - Returns a serializer instance.
+* `get_serializer(self, instance=None, data=None, files=None, many=False, partial=False, allow_add_remove=False)` - Returns a serializer instance.
 * `get_pagination_serializer(self, page)` - Returns a serializer instance to use with paginated data.
 * `paginate_queryset(self, queryset)` - Paginate a queryset if required, either returning a page object, or `None` if pagination is not configured for this view.
 * `filter_queryset(self, queryset)` - Given a queryset, filter it with whichever filter backends are in use, returning a new queryset.
@@ -360,11 +362,20 @@ If you are using a mixin across multiple views, you can take this a step further
 
 Using custom base classes is a good option if you have custom behavior that consistently needs to be repeated across a large number of views throughout your project.
 
-[cite]: https://docs.djangoproject.com/en/dev/ref/class-based-views/#base-vs-generic-views
+# Third party packages
 
+The following third party packages provide additional generic view implementations.
+
+## Django REST Framework bulk
+
+The [django-rest-framework-bulk package][django-rest-framework-bulk] implements generic view mixins as well as some common concrete generic views to allow to apply bulk operations via API requests.
+
+
+[cite]: https://docs.djangoproject.com/en/dev/ref/class-based-views/#base-vs-generic-views
 [GenericAPIView]: #genericapiview
 [ListModelMixin]: #listmodelmixin
 [CreateModelMixin]: #createmodelmixin
 [RetrieveModelMixin]: #retrievemodelmixin
 [UpdateModelMixin]: #updatemodelmixin
 [DestroyModelMixin]: #destroymodelmixin
+[django-rest-framework-bulk]: https://github.com/miki725/django-rest-framework-bulk

@@ -1,15 +1,38 @@
-<p class="badges">
+<p class="badges" height=20px>
 <iframe src="http://ghbtns.com/github-btn.html?user=tomchristie&amp;repo=django-rest-framework&amp;type=watch&amp;count=true" class="github-star-button" allowtransparency="true" frameborder="0" scrolling="0" width="110px" height="20px"></iframe>
 
-<a href="https://twitter.com/share" class="twitter-share-button" data-url="django-rest-framework.org" data-text="Checking out the totally awesome Django REST framework! http://django-rest-framework.org" data-count="none"></a>
+<a href="https://twitter.com/share" class="twitter-share-button" data-url="django-rest-framework.org" data-text="Checking out the totally awesome Django REST framework! http://www.django-rest-framework.org" data-count="none"></a>
 <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="http://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
 
 <img src="https://secure.travis-ci.org/tomchristie/django-rest-framework.png?branch=master" class="travis-build-image">
 </p>
 
-# Django REST framework
+---
 
-**Awesome web-browsable Web APIs.**
+#### Django REST framework 3 - Kickstarter announcement!
+
+We are currently running a Kickstarter campaign to help fund the development of Django REST framework 3.
+
+If you want to help drive sustainable open-source development **please [check out the Kickstarter project](https://www.kickstarter.com/projects/tomchristie/django-rest-framework-3) and consider funding us.**
+
+---
+
+<p>
+<h1 style="position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    border: 0;">Django REST Framework</h1>
+
+<img alt="Django REST Framework" title="Logo by Jake 'Sid' Smith" src="img/logo.png" width="600px" style="display: block; margin: 0 auto 0 auto">
+</p>
+
+<!--
+# Django REST framework
+-->
 
 Django REST framework is a powerful and flexible toolkit that makes it easy to build Web APIs.
 
@@ -20,12 +43,15 @@ Some reasons you might want to use REST framework:
 * [Serialization][serializers] that supports both [ORM][modelserializer-section] and [non-ORM][serializer-section] data sources.
 * Customizable all the way down - just use [regular function-based views][functionview-section] if you don't need the [more][generic-views] [powerful][viewsets] [features][routers].
 * [Extensive documentation][index], and [great community support][group].
+* Used and trusted by large companies such as [Mozilla][mozilla] and [Eventbrite][eventbrite].
 
-There is a live example API for testing purposes, [available here][sandbox].
-
-**Below**: *Screenshot from the browsable API*
+---
 
 ![Screenshot][image]
+
+**Above**: *Screenshot from the browsable API*
+
+----
 
 ## Requirements
 
@@ -62,7 +88,7 @@ Add `'rest_framework'` to your `INSTALLED_APPS` setting.
 
     INSTALLED_APPS = (
         ...
-        'rest_framework',        
+        'rest_framework',
     )
 
 If you're intending to use the browsable API you'll probably also want to add REST framework's login and logout views.  Add the following to your root `urls.py` file.
@@ -100,7 +126,7 @@ Don't forget to make sure you've also added `rest_framework` to your `INSTALLED_
 We're ready to create our API now.
 Here's our project's root `urls.py` module:
 
-    from django.conf.urls.defaults import url, patterns, include
+    from django.conf.urls import url, patterns, include
     from django.contrib.auth.models import User, Group
     from rest_framework import viewsets, routers
 
@@ -111,8 +137,8 @@ Here's our project's root `urls.py` module:
     class GroupViewSet(viewsets.ModelViewSet):
         model = Group
 
-    
-    # Routers provide an easy way of automatically determining the URL conf
+
+    # Routers provide an easy way of automatically determining the URL conf.
     router = routers.DefaultRouter()
     router.register(r'users', UserViewSet)
     router.register(r'groups', GroupViewSet)
@@ -139,6 +165,8 @@ The tutorial will walk you through the building blocks that make up REST framewo
 * [4 - Authentication & permissions][tut-4]
 * [5 - Relationships & hyperlinked APIs][tut-5]
 * [6 - Viewsets & routers][tut-6]
+
+There is a live example API of the finished tutorial API for testing purposes, [available here][sandbox].
 
 ## API Guide
 
@@ -177,9 +205,11 @@ General guides to using REST framework.
 * [Browser enhancements][browser-enhancements]
 * [The Browsable API][browsableapi]
 * [REST, Hypermedia & HATEOAS][rest-hypermedia-hateoas]
+* [Contributing to REST framework][contributing]
 * [2.0 Announcement][rest-framework-2-announcement]
 * [2.2 Announcement][2.2-announcement]
 * [2.3 Announcement][2.3-announcement]
+* [Kickstarter Announcement][kickstarter-announcement]
 * [Release Notes][release-notes]
 * [Credits][credits]
 
@@ -195,7 +225,7 @@ Run the tests:
 
     ./rest_framework/runtests/runtests.py
 
-To run the tests against all supported configurations, first install [the tox testing tool][tox] globally, using `pip install tox`, then simply run `tox`: 
+To run the tests against all supported configurations, first install [the tox testing tool][tox] globally, using `pip install tox`, then simply run `tox`:
 
     tox
 
@@ -218,32 +248,33 @@ Send a description of the issue via email to [rest-framework-security@googlegrou
 
 ## License
 
-Copyright (c) 2011-2013, Tom Christie
+Copyright (c) 2011-2014, Tom Christie
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without 
+Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-Redistributions of source code must retain the above copyright notice, this 
+Redistributions of source code must retain the above copyright notice, this
 list of conditions and the following disclaimer.
-Redistributions in binary form must reproduce the above copyright notice, this 
-list of conditions and the following disclaimer in the documentation and/or 
+Redistributions in binary form must reproduce the above copyright notice, this
+list of conditions and the following disclaimer in the documentation and/or
 other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE 
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 [travis]: http://travis-ci.org/tomchristie/django-rest-framework?branch=master
 [travis-build-image]: https://secure.travis-ci.org/tomchristie/django-rest-framework.png?branch=master
-[urlobject]: https://github.com/zacharyvoase/urlobject
+[mozilla]: http://www.mozilla.org/en-US/about/
+[eventbrite]: https://www.eventbrite.co.uk/about/
 [markdown]: http://pypi.python.org/pypi/Markdown/
 [yaml]: http://pypi.python.org/pypi/PyYAML
 [defusedxml]: https://pypi.python.org/pypi/defusedxml
@@ -303,6 +334,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 [rest-framework-2-announcement]: topics/rest-framework-2-announcement.md
 [2.2-announcement]: topics/2.2-announcement.md
 [2.3-announcement]: topics/2.3-announcement.md
+[kickstarter-announcement]: topics/kickstarter-announcement.md 
 [release-notes]: topics/release-notes.md
 [credits]: topics/credits.md
 

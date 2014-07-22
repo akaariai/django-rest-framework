@@ -36,6 +36,12 @@ For example:
         self.check_object_permissions(self.request, obj)
         return obj
 
+#### Limitations of object level permissions
+
+For performance reasons the generic views will not automatically apply object level permissions to each instance in a queryset when returning a list of objects.
+
+Often when you're using object level permissions you'll also want to [filter the queryset][filtering] appropriately, to ensure that users only have visibility onto instances that they are permitted to view.
+
 ## Setting the permission policy
 
 The default permission policy may be set globally, using the `DEFAULT_PERMISSION_CLASSES` setting.  For example.
@@ -56,7 +62,7 @@ You can also set the authentication policy on a per-view, or per-viewset basis,
 using the `APIView` class based views.
 
     from rest_framework.permissions import IsAuthenticated
-	from rest_framework.responses import Response
+	from rest_framework.response import Response
 	from rest_framework.views import APIView
 
     class ExampleView(APIView):
@@ -230,9 +236,14 @@ The [DRF Any Permissions][drf-any-permissions] packages provides a different per
 
 The [Composed Permissions][composed-permissions] package provides a simple way to define complex and multi-depth (with logic operators) permission objects, using small and reusable components.
 
+## REST Condition
+
+The [REST Condition][rest-condition] package is another extension for building complex permissions in a simple and convenient way.  The extension allows you to combine permissions with logical operators.
+
 [cite]: https://developer.apple.com/library/mac/#documentation/security/Conceptual/AuthenticationAndAuthorizationGuide/Authorization/Authorization.html
 [authentication]: authentication.md
 [throttling]: throttling.md
+[filtering]: filtering.md
 [contribauth]: https://docs.djangoproject.com/en/1.0/topics/auth/#permissions
 [objectpermissions]: https://docs.djangoproject.com/en/dev/topics/auth/customizing/#handling-object-permissions
 [guardian]: https://github.com/lukaszb/django-guardian
@@ -243,3 +254,4 @@ The [Composed Permissions][composed-permissions] package provides a simple way t
 [filtering]: filtering.md
 [drf-any-permissions]: https://github.com/kevin-brown/drf-any-permissions
 [composed-permissions]: https://github.com/niwibe/djangorestframework-composed-permissions
+[rest-condition]: https://github.com/caxap/rest_condition

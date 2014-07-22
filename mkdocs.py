@@ -18,7 +18,7 @@ if local:
     suffix = '.html'
     index = 'index.html'
 else:
-    base_url = 'http://django-rest-framework.org'
+    base_url = 'http://www.django-rest-framework.org'
     suffix = ''
     index = ''
 
@@ -144,7 +144,7 @@ for (dirpath, dirnames, filenames) in os.walk(docs_dir):
         if filename == 'index.md':
             main_title = 'Django REST framework - APIs made easy'
         else:
-            main_title = 'Django REST framework - ' + main_title
+            main_title = main_title + ' - Django REST framework'
 
         if relative_path == 'index.md':
             canonical_url = base_url
@@ -160,6 +160,12 @@ for (dirpath, dirnames, filenames) in os.walk(docs_dir):
         output = output.replace('{{ description }}', description)
         output = output.replace('{{ page_id }}', filename[:-3])
         output = output.replace('{{ canonical_url }}', canonical_url)
+
+        if filename =='index.md':
+            output = output.replace('{{ ad_block }}', """<hr/>
+              <script type="text/javascript" src="//cdn.fusionads.net/fusion.js?zoneid=1332&serve=C6SDP2Y&placement=djangorestframework" id="_fusionads_js"></script>""")
+        else:
+            output = output.replace('{{ ad_block }}', '')
 
         if prev_url:
             output = output.replace('{{ prev_url }}', prev_url)

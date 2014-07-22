@@ -137,7 +137,7 @@ The `@action` and `@link` decorators can additionally take extra arguments that 
         def set_password(self, request, pk=None):
            ...
 
-The `@action` decorator will route `POST` requests by default, but may also accept other HTTP methods, by using the `method` argument.  For example:
+The `@action` decorator will route `POST` requests by default, but may also accept other HTTP methods, by using the `methods` argument.  For example:
 
         @action(methods=['POST', 'DELETE'])
         def unset_password(self, request, pk=None):
@@ -170,7 +170,7 @@ The actions provided by the `ModelViewSet` class are `.list()`, `.retrieve()`,  
 
 #### Example
 
-Because `ModelViewSet` extends `GenericAPIView`, you'll normally need to provide at least the `queryset` and `serializer_class` attributes.  For example:
+Because `ModelViewSet` extends `GenericAPIView`, you'll normally need to provide at least the `queryset` and `serializer_class` attributes, or the `model` attribute shortcut.  For example:
 
     class AccountViewSet(viewsets.ModelViewSet):
         """
@@ -225,7 +225,7 @@ To create a base viewset class that provides `create`, `list` and `retrieve` ope
                                     mixins.RetrieveModelMixin,
                                     viewsets.GenericViewSet):
         """
-        A viewset that provides `retrieve`, `update`, and `list` actions.
+        A viewset that provides `retrieve`, `create`, and `list` actions.
 
         To use it, override the class and set the `.queryset` and
         `.serializer_class` attributes.

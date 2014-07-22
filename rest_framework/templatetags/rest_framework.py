@@ -2,10 +2,11 @@ from __future__ import unicode_literals, absolute_import
 from django import template
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.http import QueryDict
+from django.utils.encoding import iri_to_uri
 from django.utils.html import escape
 from django.utils.safestring import SafeData, mark_safe
 from rest_framework.compat import urlparse, force_text, six, smart_urlquote
-import re, string
+import re
 
 register = template.Library()
 
@@ -121,7 +122,7 @@ def optional_login(request):
     except NoReverseMatch:
         return ''
 
-    snippet = "<a href='%s?next=%s'>Log in</a>" % (login_url, request.path)
+    snippet = "<a href='%s?next=%s'>Log in</a>" % (login_url, escape(request.path))
     return snippet
 
 
@@ -135,7 +136,7 @@ def optional_logout(request):
     except NoReverseMatch:
         return ''
 
-    snippet = "<a href='%s?next=%s'>Log out</a>" % (logout_url, request.path)
+    snippet = "<a href='%s?next=%s'>Log out</a>" % (logout_url, escape(request.path))
     return snippet
 
 
@@ -144,7 +145,9 @@ def add_query_param(request, key, val):
     """
     Add a query parameter to the current request url, and return the new url.
     """
-    return replace_query_param(request.get_full_path(), key, val)
+    iri = request.get_full_path()
+    uri = iri_to_uri(iri)
+    return replace_query_param(uri, key, val)
 
 
 @register.filter
@@ -177,13 +180,24 @@ def add_class(value, css_class):
 
 
 # Bunch of stuff cloned from urlize
-TRAILING_PUNCTUATION = ['.', ',', ':', ';', '.)', '"', "'"]
+TRAILING_PUNCTUATION = ['.', ',', ':', ';', '.)', '"', "']", "'}", "'"]
 WRAPPING_PUNCTUATION = [('(', ')'), ('<', '>'), ('[', ']'), ('&lt;', '&gt;'),
                         ('"', '"'), ("'", "'")]
 word_split_re = re.compile(r'(\s+)')
 simple_url_re = re.compile(r'^https?://\[?\w', re.IGNORECASE)
 simple_url_2_re = re.compile(r'^www\.|^(?!http)\w[^@]+\.(com|edu|gov|int|mil|net|org)$', re.IGNORECASE)
 simple_email_re = re.compile(r'^\S+@\S+\.\S+$')
+
+
+def smart_urlquote_wrapper(matched_url):
+    """
+    Simple wrapper for smart_urlquote. ValueError("Invalid IPv6 URL") can
+    be raised here, see issue #1386
+    """
+    try:
+        return smart_urlquote(matched_url)
+    except ValueError:
+        return None
 
 
 @register.filter
@@ -208,7 +222,6 @@ def urlize_quoted_links(text, trim_url_limit=None, nofollow=True, autoescape=Tru
     safe_input = isinstance(text, SafeData)
     words = word_split_re.split(force_text(text))
     for i, word in enumerate(words):
-        match = None
         if '.' in word or '@' in word or ':' in word:
             # Deal with punctuation.
             lead, middle, trail = '', word, ''
@@ -230,9 +243,9 @@ def urlize_quoted_links(text, trim_url_limit=None, nofollow=True, autoescape=Tru
             url = None
             nofollow_attr = ' rel="nofollow"' if nofollow else ''
             if simple_url_re.match(middle):
-                url = smart_urlquote(middle)
+                url = smart_urlquote_wrapper(middle)
             elif simple_url_2_re.match(middle):
-                url = smart_urlquote('http://%s' % middle)
+                url = smart_urlquote_wrapper('http://%s' % middle)
             elif not ':' in middle and simple_email_re.match(middle):
                 local, domain = middle.rsplit('@', 1)
                 try:

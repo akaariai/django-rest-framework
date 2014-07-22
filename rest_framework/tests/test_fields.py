@@ -4,6 +4,7 @@ General serializer field tests.
 from __future__ import unicode_literals
 
 import datetime
+import re
 from decimal import Decimal
 from uuid import uuid4
 from django.core import validators
@@ -102,6 +103,16 @@ class BasicFieldTests(TestCase):
         field = serializers.Field()
         keys = list(field.to_native(ret).keys())
         self.assertEqual(keys, ['c', 'b', 'a', 'z'])
+
+    def test_widget_html_attributes(self):
+        """
+        Make sure widget_html() renders the correct attributes
+        """
+        r = re.compile('(\S+)=["\']?((?:.(?!["\']?\s+(?:\S+)=|[>"\']))+.)["\']?')
+        form = TimeFieldModelSerializer().data
+        attributes = r.findall(form.fields['clock'].widget_html())
+        self.assertIn(('name', 'clock'), attributes)
+        self.assertIn(('id', 'clock'), attributes)
 
 
 class DateFieldTest(TestCase):
@@ -312,7 +323,7 @@ class DateTimeFieldTest(TestCase):
             f.from_native('04:61:59')
         except validators.ValidationError as e:
             self.assertEqual(e.messages, ["Datetime has wrong format. Use one of these formats instead: "
-                                          "YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HHMM|-HHMM|Z]"])
+                                          "YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]"])
         else:
             self.fail("ValidationError was not properly raised")
 
@@ -326,7 +337,7 @@ class DateTimeFieldTest(TestCase):
             f.from_native('04 -- 31')
         except validators.ValidationError as e:
             self.assertEqual(e.messages, ["Datetime has wrong format. Use one of these formats instead: "
-                                          "YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HHMM|-HHMM|Z]"])
+                                          "YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]"])
         else:
             self.fail("ValidationError was not properly raised")
 
@@ -706,21 +717,31 @@ class ChoiceFieldTests(TestCase):
         f = serializers.ChoiceField(required=False, choices=SAMPLE_CHOICES)
         self.assertEqual(f.choices, models.fields.BLANK_CHOICE_DASH + SAMPLE_CHOICES)
 
+    def test_blank_choice_display(self):
+        blank = 'No Preference'
+        f = serializers.ChoiceField(
+            required=False,
+            choices=SAMPLE_CHOICES,
+            blank_display_value=blank,
+        )
+        self.assertEqual(f.choices, [('', blank)] + SAMPLE_CHOICES)
+
     def test_invalid_choice_model(self):
-        s = ChoiceFieldModelSerializer(data={'choice' : 'wrong_value'})
+        s = ChoiceFieldModelSerializer(data={'choice': 'wrong_value'})
         self.assertFalse(s.is_valid())
         self.assertEqual(s.errors,  {'choice': ['Select a valid choice. wrong_value is not one of the available choices.']})
         self.assertEqual(s.data['choice'], '')
 
     def test_empty_choice_model(self):
         """
-        Test that the 'empty' value is correctly passed and used depending on the 'null' property on the model field.
+        Test that the 'empty' value is correctly passed and used depending on
+        the 'null' property on the model field.
         """
-        s = ChoiceFieldModelSerializer(data={'choice' : ''})
+        s = ChoiceFieldModelSerializer(data={'choice': ''})
         self.assertTrue(s.is_valid())
         self.assertEqual(s.data['choice'], '')
 
-        s = ChoiceFieldModelWithNullSerializer(data={'choice' : ''})
+        s = ChoiceFieldModelWithNullSerializer(data={'choice': ''})
         self.assertTrue(s.is_valid())
         self.assertEqual(s.data['choice'], None)
 
@@ -739,6 +760,23 @@ class ChoiceFieldTests(TestCase):
         f = serializers.ChoiceField(choices=SAMPLE_CHOICES, empty=None)
         self.assertEqual(f.from_native(''), None)
         self.assertEqual(f.from_native(None), None)
+
+    def test_metadata_choices(self):
+        """
+        Make sure proper choices are included in the field's metadata.
+        """
+        choices = [{'value': v, 'display_name': n} for v, n in SAMPLE_CHOICES]
+        f = serializers.ChoiceField(choices=SAMPLE_CHOICES)
+        self.assertEqual(f.metadata()['choices'], choices)
+
+    def test_metadata_choices_not_required(self):
+        """
+        Make sure proper choices are included in the field's metadata.
+        """
+        choices = [{'value': v, 'display_name': n}
+                   for v, n in models.fields.BLANK_CHOICE_DASH + SAMPLE_CHOICES]
+        f = serializers.ChoiceField(required=False, choices=SAMPLE_CHOICES)
+        self.assertEqual(f.metadata()['choices'], choices)
 
 
 class EmailFieldTests(TestCase):
@@ -842,7 +880,9 @@ class SlugFieldTests(TestCase):
 
 class URLFieldTests(TestCase):
     """
-    Tests for URLField attribute values
+    Tests for URLField attribute values.
+
+    (Includes test for #1210, checking that validators can be overridden.)
     """
 
     class URLFieldModel(RESTFrameworkModel):
@@ -883,6 +923,11 @@ class URLFieldTests(TestCase):
         self.assertEqual(serializer.is_valid(), True)
         self.assertEqual(getattr(serializer.fields['url_field'],
                          'max_length'), 20)
+
+    def test_validators_can_be_overridden(self):
+        url_field = serializers.URLField(validators=[])
+        validators = url_field.validators
+        self.assertEqual([], validators, 'Passing `validators` kwarg should have overridden default validators')
 
 
 class FieldMetadata(TestCase):

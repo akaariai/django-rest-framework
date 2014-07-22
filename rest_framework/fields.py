@@ -62,7 +62,7 @@ def get_component(obj, attr_name):
 
 def readable_datetime_formats(formats):
     format = ', '.join(formats).replace(ISO_8601,
-             'YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HHMM|-HHMM|Z]')
+             'YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]')
     return humanize_strptime(format)
 
 
@@ -154,7 +154,12 @@ class Field(object):
     def widget_html(self):
         if not self.widget:
             return ''
-        return self.widget.render(self._name, self._value)
+
+        attrs = {}
+        if 'id' not in self.widget.attrs:
+            attrs['id'] = self._name
+
+        return self.widget.render(self._name, self._value, attrs=attrs)
 
     def label_tag(self):
         return '<label for="%s">%s:</label>' % (self._name, self.label)
@@ -164,7 +169,7 @@ class Field(object):
         Called to set up a field prior to field_to_native or field_from_native.
 
         parent - The parent serializer.
-        model_field - The model field this field corresponds to, if one exists.
+        field_name - The name of the field being initialized.
         """
         self.parent = parent
         self.root = parent.root or parent
@@ -182,7 +187,7 @@ class Field(object):
 
     def field_to_native(self, obj, field_name):
         """
-        Given and object and a field name, returns the value that should be
+        Given an object and a field name, returns the value that should be
         serialized for that field.
         """
         if obj is None:
@@ -246,6 +251,7 @@ class WritableField(Field):
     """
     Base for read/write fields.
     """
+    write_only = False
     default_validators = []
     default_error_messages = {
         'required': _('This field is required.'),
@@ -255,7 +261,7 @@ class WritableField(Field):
     default = None
 
     def __init__(self, source=None, label=None, help_text=None,
-                 read_only=False, required=None,
+                 read_only=False, write_only=False, required=None,
                  validators=[], error_messages=None, widget=None,
                  default=None, blank=None):
 
@@ -269,6 +275,10 @@ class WritableField(Field):
         super(WritableField, self).__init__(source=source, label=label, help_text=help_text)
 
         self.read_only = read_only
+        self.write_only = write_only
+
+        assert not (read_only and write_only), "Cannot set read_only=True and write_only=True"
+
         if required is None:
             self.required = not(read_only)
         else:
@@ -284,7 +294,7 @@ class WritableField(Field):
         self.validators = self.default_validators + validators
         self.default = default if default is not None else self.default
 
-        # Widgets are ony used for HTML forms.
+        # Widgets are only used for HTML forms.
         widget = widget or self.widget
         if isinstance(widget, type):
             widget = widget()
@@ -295,6 +305,11 @@ class WritableField(Field):
         memo[id(self)] = result
         result.validators = self.validators[:]
         return result
+
+    def get_default_value(self):
+        if is_simple_callable(self.default):
+            return self.default()
+        return self.default
 
     def validate(self, value):
         if value in validators.EMPTY_VALUES and self.required:
@@ -318,6 +333,11 @@ class WritableField(Field):
         if errors:
             raise ValidationError(errors)
 
+    def field_to_native(self, obj, field_name):
+        if self.write_only:
+            return None
+        return super(WritableField, self).field_to_native(obj, field_name)
+
     def field_from_native(self, data, files, field_name, into):
         """
         Given a dictionary and a field name, updates the dictionary `into`,
@@ -339,10 +359,7 @@ class WritableField(Field):
         except KeyError:
             if self.default is not None and not self.partial:
                 # Note: partial updates shouldn't set defaults
-                if is_simple_callable(self.default):
-                    native = self.default()
-                else:
-                    native = self.default
+                native = self.get_default_value()
             else:
                 if self.required:
                     raise ValidationError(self.error_messages['required'])
@@ -428,7 +445,7 @@ class BooleanField(WritableField):
     def field_from_native(self, data, files, field_name, into):
         # HTML checkboxes do not explicitly represent unchecked as `False`
         # we deal with that here...
-        if isinstance(data, QueryDict):
+        if isinstance(data, QueryDict) and self.default is None:
             self.default = False
 
         return super(BooleanField, self).field_from_native(
@@ -457,8 +474,12 @@ class CharField(WritableField):
             self.validators.append(validators.MaxLengthValidator(max_length))
 
     def from_native(self, value):
-        if isinstance(value, six.string_types) or value is None:
+        if isinstance(value, six.string_types):
             return value
+
+        if value is None:
+            return ''
+
         return smart_text(value)
 
 
@@ -467,7 +488,8 @@ class URLField(CharField):
     type_label = 'url'
 
     def __init__(self, **kwargs):
-        kwargs['validators'] = [validators.URLValidator()]
+        if not 'validators' in kwargs:
+            kwargs['validators'] = [validators.URLValidator()]
         super(URLField, self).__init__(**kwargs)
 
 
@@ -488,7 +510,7 @@ class SlugField(CharField):
 
 class ChoiceField(WritableField):
     type_name = 'ChoiceField'
-    type_label = 'multiple choice'
+    type_label = 'choice'
     form_field_class = forms.ChoiceField
     widget = widgets.Select
     default_error_messages = {
@@ -496,12 +518,16 @@ class ChoiceField(WritableField):
                             'the available choices.'),
     }
 
-    def __init__(self, choices=(), *args, **kwargs):
+    def __init__(self, choices=(), blank_display_value=None, *args, **kwargs):
         self.empty = kwargs.pop('empty', '')
         super(ChoiceField, self).__init__(*args, **kwargs)
         self.choices = choices
         if not self.required:
-            self.choices = BLANK_CHOICE_DASH + self.choices
+            if blank_display_value is None:
+                blank_choice = BLANK_CHOICE_DASH
+            else:
+                blank_choice = [('', blank_display_value)]
+            self.choices = blank_choice + self.choices
 
     def _get_choices(self):
         return self._choices
@@ -513,6 +539,11 @@ class ChoiceField(WritableField):
         self._choices = self.widget.choices = list(value)
 
     choices = property(_get_choices, _set_choices)
+
+    def metadata(self):
+        data = super(ChoiceField, self).metadata()
+        data['choices'] = [{'value': v, 'display_name': n} for v, n in self.choices]
+        return data
 
     def validate(self, value):
         """
@@ -1000,9 +1031,9 @@ class SerializerMethodField(Field):
     A field that gets its value by calling a method on the serializer it's attached to.
     """
 
-    def __init__(self, method_name):
+    def __init__(self, method_name, *args, **kwargs):
         self.method_name = method_name
-        super(SerializerMethodField, self).__init__()
+        super(SerializerMethodField, self).__init__(*args, **kwargs)
 
     def field_to_native(self, obj, field_name):
         value = getattr(self.parent, self.method_name)(obj)
