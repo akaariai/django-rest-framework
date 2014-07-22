@@ -345,3 +345,40 @@ class NestedModelSerializerUpdateTests(TestCase):
         result = deserialize.object
         result.save()
         self.assertEqual(result.id, john.id)
+
+
+class HyperlinkedNestedSerializersTests(TestCase):
+    def test_hyperlinked_nested_serializers_have_links(self):
+        class BlogPostSerializer(serializers.HyperlinkedModelSerializer):
+            class Meta:
+                model = models.BlogPost
+                fields = ('id', 'title', 'blogpostcomment_set')
+
+        class PersonSerializer(serializers.HyperlinkedModelSerializer):
+            posts = BlogPostSerializer(many=True, source='blogpost_set')
+            class Meta:
+                model = models.Person
+                fields = ('id', 'name', 'age', 'posts')
+
+        john = models.Person.objects.create(name="john")
+
+        post = john.blogpost_set.create(title="Test blog post")
+        post.blogpostcomment_set.create(text="I hate this blog post")
+        post.blogpostcomment_set.create(text="I love this blog post")
+
+        expected_data = {
+            'id': 1,
+            'name': 'john',
+            'age': None,
+            'posts': [{
+                'id': 1,
+                'title': 'Test blog post',
+                'blogpostcomment_set': [
+                    '/bloblogpostcomment-detail/1/',
+                    '/bloblogpostcomment-detail/2/'
+                ]
+            }]
+        } 
+
+        serializer = PersonSerializer(instance=john)
+        self.assertEqual(serializer.data, expected_data)
