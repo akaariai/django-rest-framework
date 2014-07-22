@@ -70,7 +70,7 @@ The following attributes control the basic view behavior.
 
 **Shortcuts**:
 
-* `model` - This shortcut may be used instead of setting either (or both) of the `queryset`/`serializer_class` attributes, although using the explicit style is generally preferred.  If used instead of `serializer_class`, then then `DEFAULT_MODEL_SERIALIZER_CLASS` setting will determine the base serializer class.  Note that `model` is only ever used for generating a default queryset or serializer class - the `queryset` and `serializer_class` attributes are always preferred if provided.
+* `model` - This shortcut may be used instead of setting either (or both) of the `queryset`/`serializer_class` attributes, although using the explicit style is generally preferred.  If used instead of `serializer_class`, then `DEFAULT_MODEL_SERIALIZER_CLASS` setting will determine the base serializer class.  Note that `model` is only ever used for generating a default queryset or serializer class - the `queryset` and `serializer_class` attributes are always preferred if provided.
 
 **Pagination**:
 
@@ -187,7 +187,7 @@ Remember that the `pre_save()` method is not called by `GenericAPIView` itself, 
 You won't typically need to override the following methods, although you might need to call into them if you're writing custom views using `GenericAPIView`.
 
 * `get_serializer_context(self)` - Returns a dictionary containing any extra context that should be supplied to the serializer.  Defaults to including `'request'`, `'view'` and `'format'` keys.
-* `get_serializer(self, instance=None, data=None, files=None, many=False, partial=False)` - Returns a serializer instance.
+* `get_serializer(self, instance=None, data=None, files=None, many=False, partial=False, allow_add_remove=False)` - Returns a serializer instance.
 * `get_pagination_serializer(self, page)` - Returns a serializer instance to use with paginated data.
 * `paginate_queryset(self, queryset)` - Paginate a queryset if required, either returning a page object, or `None` if pagination is not configured for this view.
 * `filter_queryset(self, queryset)` - Given a queryset, filter it with whichever filter backends are in use, returning a new queryset.
