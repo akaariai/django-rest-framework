@@ -84,13 +84,16 @@ The client may additionally include an `'indent'` media type parameter, in which
         "unicode black star": "\u2605"
     }
 
+Another optional parameter is `'separators'` which will give you control on the json separators.  For example you can make the result more compact with `separators = (',', ':')` which would give:
+
+    '[1,2,3,{"4":5,"6":7}]'
+
 **.media_type**: `application/json`
 
 **.format**: `'.json'`
 
 **.charset**: `None`
 
-**.separators**: `None`
 
 ## UnicodeJSONRenderer
 
