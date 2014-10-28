@@ -46,7 +46,6 @@ def is_simple_callable(obj):
     len_defaults = len(defaults) if defaults else 0
     return len_args <= len_defaults
 
-
 def get_component(obj, attr_name):
     """
     Given an object, and an attribute name,
@@ -128,6 +127,8 @@ class Field(object):
     form_field_class = forms.CharField
     type_label = 'field'
     widget = None
+    cache = {}
+    component_cache = {}
 
     def __init__(self, source=None, label=None, help_text=None):
         self.parent = None
@@ -189,6 +190,27 @@ class Field(object):
         """
         return
 
+    def init_get_component_cache(self, value, source):
+        component_list = []
+        if self.source == '*':
+            return component_list, value
+        for component in source.split('.'):
+            if isinstance(value, dict):
+                is_dict = True
+                value = value.get(component)
+            else:
+                is_dict = False
+                value = getattr(value, component)
+            if is_simple_callable(value):
+                is_callable = True
+                value = value()
+            else:
+                is_callable = False
+            component_list.append((component, is_dict, is_callable))
+            if value is None:
+                break
+        return component_list, value
+
     def field_to_native(self, obj, field_name):
         """
         Given an object and a field name, returns the value that should be
@@ -196,39 +218,60 @@ class Field(object):
         """
         if obj is None:
             return self.empty
-
-        if self.source == '*':
-            return self.to_native(obj)
-
-        source = self.source or field_name
         value = obj
 
-        for component in source.split('.'):
-            value = get_component(value, component)
-            if value is None:
-                break
-
+        try:
+            component_list = self.component_cache[(self, obj.__class__)]
+            for component, is_dict, is_callable in component_list:
+                if is_dict:
+                    value = value.get(component)
+                else:
+                    value = getattr(value, component)
+                if is_callable:
+                    value = value()
+                if value is None:
+                    break
+        except KeyError:
+            component_list, value = self.init_get_component_cache(value, self.source or field_name)
+            self.component_cache[(self, obj.__class__)] = component_list
         return self.to_native(value)
+
+    def init_to_native_cache(self, value):
+        call_parts = []
+        if is_simple_callable(value):
+            call_parts.append(lambda x: x())
+            value = value()
+        if is_protected_type(value):
+            return value, call_parts
+        elif (is_non_str_iterable(value) and
+              not isinstance(value, (dict, six.string_types))):
+            call_parts.append(lambda x: [self.to_native(item) for item in value])
+            return [self.to_native(item) for item in value], call_parts
+        elif isinstance(value, dict):
+            call_parts.append(
+                lambda x: SortedDict([(key, self.to_native(val))
+                                      for key, val in value.items()]))
+            ret = SortedDict()
+            for key, val in value.items():
+                ret[key] = self.to_native(val)
+            return ret, call_parts
+        if isinstance(value, unicode):
+            return value, call_parts
+        call_parts.append(lambda x: force_text(x))
+        return force_text(value), call_parts
 
     def to_native(self, value):
         """
         Converts the field's value into it's simple representation.
         """
-        if is_simple_callable(value):
-            value = value()
-
-        if is_protected_type(value):
-            return value
-        elif (is_non_str_iterable(value) and
-              not isinstance(value, (dict, six.string_types))):
-            return [self.to_native(item) for item in value]
-        elif isinstance(value, dict):
-            # Make sure we preserve field ordering, if it exists
-            ret = SortedDict()
-            for key, val in value.items():
-                ret[key] = self.to_native(val)
-            return ret
-        return force_text(value)
+        if (self, value.__class__) not in self.cache:
+            native, call_parts = self.init_to_native_cache(value)
+            self.cache[(self, value.__class__)] = call_parts
+            return native
+        call_parts = self.cache[(self, value.__class__)]
+        for call in call_parts:
+            value = call(value)
+        return value
 
     def attributes(self):
         """

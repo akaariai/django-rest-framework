@@ -185,6 +185,8 @@ class BaseSerializer(WritableField):
                  context=None, partial=False, many=False,
                  allow_add_remove=False, **kwargs):
         super(BaseSerializer, self).__init__(**kwargs)
+        self.cache = {}
+        self.component_cache = {}
         self.opts = self._options_class(self.Meta)
         self.parent = None
         self.root = None
@@ -347,10 +349,13 @@ class BaseSerializer(WritableField):
             if field.read_only and obj is None:
                 continue
             field.initialize(parent=self, field_name=field_name)
-            key = self.get_field_key(field_name)
+            try:
+                key, method = self.cache[field_name]
+            except KeyError:
+                self.init_cache()
+                key, method = self.cache[field_name]
             value = field.field_to_native(obj, field_name)
-            method = getattr(self, 'transform_%s' % field_name, None)
-            if callable(method):
+            if method:
                 value = method(obj, value)
             if not getattr(field, 'write_only', False):
                 ret[key] = value
@@ -548,6 +553,14 @@ class BaseSerializer(WritableField):
 
     def is_valid(self):
         return not self.errors
+
+    def init_cache(self):
+        for field_name, field in self.fields.items():
+            key = self.get_field_key(field_name)
+            method = getattr(self, 'transform_%s' % field_name, None)
+            if not callable(method):
+                method = None
+            self.cache[field_name] = (key, method)
 
     @property
     def data(self):
