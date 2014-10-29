@@ -15,6 +15,7 @@ from django.db import models
 from django.db.models.fields import FieldDoesNotExist
 from django.utils import six
 from django.utils.datastructures import SortedDict
+from django.utils.functional import cached_property
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import empty, set_value, Field, SkipField
 from rest_framework.settings import api_settings
@@ -392,6 +393,19 @@ class Serializer(BaseSerializer):
             raise ValidationError(errors)
 
         return ret
+
+    @cached_property
+    def repr_fields(self):
+        return [field for field in self.fields.values()
+                if (not field.read_only) or (field.default is not empty)]
+
+    def obj_to_representation(self, obj):
+        return dict([(f.field_name, f.to_representation(getattr(obj, f.field_name)))
+                     for f in self.repr_fields])
+
+    def dict_to_representation(self, d):
+        return dict([(f.field_name, f.to_representation(d.get(f.field_name)))
+                     for f in self.repr_fields])
 
     def to_representation(self, instance):
         """
