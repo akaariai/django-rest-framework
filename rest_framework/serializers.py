@@ -164,6 +164,17 @@ class ReturnDict(SortedDict):
         super(ReturnDict, self).__init__(*args, **kwargs)
 
 
+class NonOrderedReturnDict(dict):
+    """
+    Similar to ReturnDict, but the keys aren't ordered.
+    """
+    __slots__ = ['serializer']
+
+    def __init__(self, *args, **kwargs):
+        self.serializer = kwargs.pop('serializer')
+        super(NonOrderedReturnDict, self).__init__(*args)
+
+
 class ReturnList(list):
     """
     Return object from `serialier.data` for the `SerializerList` class.
@@ -283,7 +294,12 @@ class SerializerMetaclass(type):
 
 @six.add_metaclass(SerializerMetaclass)
 class Serializer(BaseSerializer):
+    _dict_class = ReturnDict
+    ordered = True
+
     def __init__(self, *args, **kwargs):
+        if 'ordered' in kwargs:
+            self.ordered = kwargs.pop('ordered')
         super(Serializer, self).__init__(*args, **kwargs)
 
         # Every new serializer is created with a clone of the field instances.
@@ -292,19 +308,21 @@ class Serializer(BaseSerializer):
         self.fields = BindingDict(self)
         for key, value in self._get_base_fields().items():
             self.fields[key] = value
+        if not self.ordered:
+            self._dict_class = NonOrderedReturnDict
 
     def _get_base_fields(self):
         return copy.deepcopy(self._declared_fields)
 
     def get_initial(self):
         if self._initial_data is not None:
-            return ReturnDict([
+            return self._dict_class([
                 (field_name, field.get_value(self._initial_data))
                 for field_name, field in self.fields.items()
                 if field.get_value(self._initial_data) is not empty
             ], serializer=self)
 
-        return ReturnDict([
+        return self._dict_class([
             (field.field_name, field.get_initial())
             for field in self.fields.values()
             if not field.write_only
@@ -369,7 +387,7 @@ class Serializer(BaseSerializer):
         Dict of native values <- Dict of primitive datatypes.
         """
         ret = {}
-        errors = ReturnDict(serializer=self)
+        errors = self._dict_class(serializer=self)
         fields = [
             field for field in self.fields.values()
             if (not field.read_only) or (field.default is not empty)
@@ -400,18 +418,18 @@ class Serializer(BaseSerializer):
                 if (not field.read_only) or (field.default is not empty)]
 
     def obj_to_representation(self, obj):
-        return dict([(f.field_name, f.to_representation(getattr(obj, f.field_name)))
-                     for f in self.repr_fields])
+        return self._dict_class([(f.field_name, f.to_representation(getattr(obj, f.field_name)))
+                                 for f in self.repr_fields], serializer=self)
 
     def dict_to_representation(self, d):
-        return dict([(f.field_name, f.to_representation(d.get(f.field_name)))
-                     for f in self.repr_fields])
+        return self._dict_class([(f.field_name, f.to_representation(d.get(f.field_name)))
+                                 for f in self.repr_fields], serializer=self)
 
     def to_representation(self, instance):
         """
         Object instance -> Dict of primitive datatypes.
         """
-        ret = ReturnDict(serializer=self)
+        ret = self._dict_class(serializer=self)
         fields = [field for field in self.fields.values() if not field.write_only]
 
         for field in fields:
