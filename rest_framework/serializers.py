@@ -418,12 +418,18 @@ class Serializer(BaseSerializer):
                 if (not field.read_only) or (field.default is not empty)]
 
     def obj_to_representation(self, obj):
-        return self._dict_class([(f.field_name, f.to_representation(getattr(obj, f.field_name)))
-                                 for f in self.repr_fields], serializer=self)
+        data = [(f, getattr(obj, f.field_name)) for
+                f in self.repr_fields]
+        return self._dict_class(
+            [(f.field_name, f.to_representation(val) if val else None)
+             for f, val in data], serializer=self)
 
     def dict_to_representation(self, d):
-        return self._dict_class([(f.field_name, f.to_representation(d.get(f.field_name)))
-                                 for f in self.repr_fields], serializer=self)
+        data = [(f, d.get(f.field_name, None)) for
+                f in self.repr_fields]
+        return self._dict_class(
+            [(f.field_name, f.to_representation(val) if val else None)
+             for f, val in data], serializer=self)
 
     def to_representation(self, instance):
         """
